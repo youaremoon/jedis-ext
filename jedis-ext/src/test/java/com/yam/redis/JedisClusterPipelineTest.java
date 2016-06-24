@@ -1,17 +1,33 @@
-# jedis-ext
-扩展jedis功能
+/**
+ * Copyright: Copyright (c) 2015 
+ * 
+ * @author youaremoon
+ * @date 2016年6月25日
+ * @version V1.0
+ */
+package com.yam.redis;
 
-===============
-目前主要是实现了redis集群模式下的批量操作功能，需要注意的是：
- * 由于集群模式存在节点的动态添加删除，且client不能实时感知（只有在执行命令时才可能知道集群发生变更），
- * 因此，该实现不保证一定成功，建议在批量操作之前调用 refreshCluster() 方法重新获取集群信息。
- * 应用需要保证不论成功还是失败都会调用close() 方法，否则可能会造成泄露。
- * 如果失败需要应用自己去重试，因此每个批次执行的命令数量需要控制。防止失败后重试的数量过多。
- * 基于以上说明，建议在集群环境较稳定（增减节点不会过于频繁）的情况下使用，且允许失败或有对应的重试策略。
- 
- 其调用方式如下：
- ```
- 		Set<HostAndPort> nodes = new HashSet<HostAndPort>();
+import java.io.IOException;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
+import org.junit.Test;
+
+import redis.clients.jedis.HostAndPort;
+import redis.clients.jedis.JedisCluster;
+
+/**
+ * @Description: TODO
+ * @author youaremoon
+ * @date 2016年6月25日 上午1:01:21
+ *
+ */
+public class JedisClusterPipelineTest {
+
+	@Test
+	public void test() {
+		Set<HostAndPort> nodes = new HashSet<HostAndPort>();
         nodes.add(new HostAndPort("127.0.0.1", 9379));
         nodes.add(new HostAndPort("127.0.0.1", 9380));
 
@@ -50,4 +66,6 @@
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
- ```
+	}
+
+}
