@@ -10,7 +10,7 @@
  * 基于以上说明，建议在集群环境较稳定（增减节点不会过于频繁）的情况下使用，且允许失败或有对应的重试策略。
  
  其调用方式如下：
- ```
+ ``` java
  		Set<HostAndPort> nodes = new HashSet<HostAndPort>();
         nodes.add(new HostAndPort("127.0.0.1", 9379));
         nodes.add(new HostAndPort("127.0.0.1", 9380));
