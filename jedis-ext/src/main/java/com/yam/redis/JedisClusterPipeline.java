@@ -52,17 +52,8 @@ public class JedisClusterPipeline extends PipelineBase implements Closeable {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(JedisClusterPipeline.class);
 
-    // 部分字段没有对应的获取方法，只能采用反射来做
-    // 你也可以去继承JedisCluster和JedisSlotBasedConnectionHandler来提供访问接口
-    // 我没这样做是因为懒
-    private static final Field FIELD_CONNECTION_HANDLER;
-    private static final Field FIELD_CACHE; 
-    static {
-        FIELD_CONNECTION_HANDLER = getField(BinaryJedisCluster.class, "connectionHandler");
-        FIELD_CACHE = getField(JedisClusterConnectionHandler.class, "cache");
-    }
-
     private JedisSlotBasedConnectionHandler connectionHandler;
+    private JedisClusterInfoCache clusterInfoCache;
     private Queue<Client> clients = new LinkedList<Client>();   // 根据顺序存储每个命令对应的Client
     private Map<JedisPool, Jedis> jedisMap = new HashMap<>();   // 用于缓存连接
 
@@ -78,12 +69,9 @@ public class JedisClusterPipeline extends PipelineBase implements Closeable {
     }
 
     public void setJedisCluster(JedisCluster jedis) {
-        JedisSlotBasedConnectionHandler ch = getValue(jedis, FIELD_CONNECTION_HANDLER);
-        if (null == ch) {
-            throw new RuntimeException("cannot get JedisSlotBasedConnectionHandler from JedisCluster");
-        }
-
-        connectionHandler = ch;
+        // 字段没有对应的获取方法，只能采用反射来做
+		connectionHandler = getValue(jedis, getField(BinaryJedisCluster.class, "connectionHandler"));
+		clusterInfoCache = getValue(connectionHandler, getField(JedisClusterConnectionHandler.class, "cache"));
     }
 
     /**
@@ -195,9 +183,7 @@ public class JedisClusterPipeline extends PipelineBase implements Closeable {
     }
 
     private Jedis getJedis(int slot) {
-        JedisClusterInfoCache cache = getValue(connectionHandler, FIELD_CACHE);
-
-        JedisPool pool = cache.getSlotPool(slot);
+        JedisPool pool = clusterInfoCache.getSlotPool(slot);
 
         // 根据pool从缓存中获取Jedis
         Jedis jedis = jedisMap.get(pool);
