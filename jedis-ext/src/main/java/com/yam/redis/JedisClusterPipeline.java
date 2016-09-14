@@ -49,9 +49,17 @@ import redis.clients.util.SafeEncoder;
  * @since Ver 1.1
  */
 public class JedisClusterPipeline extends PipelineBase implements Closeable {
+	private static final Logger LOGGER = LoggerFactory.getLogger(JedisClusterPipeline.class);
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(JedisClusterPipeline.class);
-
+	// 部分字段没有对应的获取方法，只能采用反射来做
+	// 你也可以去继承JedisCluster和JedisSlotBasedConnectionHandler来提供访问接口
+	private static final Field FIELD_CONNECTION_HANDLER;
+	private static final Field FIELD_CACHE; 
+	static {
+		FIELD_CONNECTION_HANDLER = getField(BinaryJedisCluster.class, "connectionHandler");
+		FIELD_CACHE = getField(JedisClusterConnectionHandler.class, "cache");
+	}
+		
 	private JedisSlotBasedConnectionHandler connectionHandler;
 	private JedisClusterInfoCache clusterInfoCache;
 	private Queue<Client> clients = new LinkedList<Client>();	// 根据顺序存储每个命令对应的Client
@@ -73,9 +81,8 @@ public class JedisClusterPipeline extends PipelineBase implements Closeable {
 	}
 
 	public void setJedisCluster(JedisCluster jedis) {
-		// 字段没有对应的获取方法，只能采用反射来做
-		connectionHandler = getValue(jedis, getField(BinaryJedisCluster.class, "connectionHandler"));
-		clusterInfoCache = getValue(connectionHandler, getField(JedisClusterConnectionHandler.class, "cache"));
+		connectionHandler = getValue(jedis, FIELD_CONNECTION_HANDLER);
+		clusterInfoCache = getValue(connectionHandler, FIELD_CACHE);
 	}
 
 	/**
