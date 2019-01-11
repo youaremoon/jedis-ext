@@ -11,7 +11,6 @@ import java.io.Closeable;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -115,8 +114,6 @@ public class JedisClusterPipeline extends PipelineBase implements Closeable {
 	}
 	
 	private void innerSync(List<Object> formatted) {
-		HashSet<Client> clientSet = new HashSet<Client>();
-		
 		try {
 			for (Client client : clients) {
 				// 在sync()调用时其实是不需要解析结果数据的，但是如果不调用get方法，发生了JedisMovedDataException这样的错误应用是不知道的，因此需要调用get()来触发错误。
@@ -124,11 +121,6 @@ public class JedisClusterPipeline extends PipelineBase implements Closeable {
 				Object data = generateResponse(client.getOne()).get();
 				if (null != formatted) {
 					formatted.add(data);
-				}
-				
-				// size相同说明所有的client都已经添加，就不用再调用add方法了
-				if (clientSet.size() != jedisMap.size()) {
-					clientSet.add(client);
 				}
 			}
 		} catch (JedisRedirectionException jre) {
@@ -140,15 +132,9 @@ public class JedisClusterPipeline extends PipelineBase implements Closeable {
 
 			throw jre;
 		} finally {
-			if (clientSet.size() != jedisMap.size()) {
-				// 所有还没有执行过的client要保证执行(flush)，防止放回连接池后后面的命令被污染
-				for (Jedis jedis : jedisMap.values()) {
-					if (clientSet.contains(jedis.getClient())) {
-						continue;
-					}
-					
-					flushCachedData(jedis);
-				}
+			// 所有还没有执行过的client要保证执行(flush)，防止放回连接池后后面的命令被污染
+			for (Jedis jedis : jedisMap.values()) {	
+				flushCachedData(jedis);
 			}
 			
 			hasDataInBuf = false;
